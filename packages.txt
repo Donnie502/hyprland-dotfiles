@@ -30,6 +30,7 @@ jetbrains-mono-fonts-all
 NetworkManager
 # --- Utilidades / build ---
 git
+jq
 curl
 unzip
 rust
