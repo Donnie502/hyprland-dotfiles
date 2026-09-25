@@ -49,7 +49,6 @@ done
 
 echo ">>> [8/8] Tema oscuro + generar colores del wallpaper..."
 gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
-gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark' 2>/dev/null || true
 gsettings set org.gnome.desktop.interface cursor-theme 'Adwaita' 2>/dev/null || true
 FIRST=$(find "$HOME/Pictures/wallpapers" -maxdepth 1 -type f | head -1)
 [ -n "$FIRST" ] && "$HOME/.cargo/bin/wallust" run "$FIRST" 2>/dev/null || true
