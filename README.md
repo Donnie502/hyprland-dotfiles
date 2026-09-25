@@ -13,7 +13,7 @@ Configuración completa de un escritorio Hyprland con colores dinámicos.
 - Fedora (probado en Fedora 44)
 
 ## Instalación
-    git clone <URL-DE-TU-REPO> ~/dotfiles
+    git clone https://github.com/Donnie502/hyprland-dotfiles.git ~/dotfiles
     cd ~/dotfiles
     ./install.sh
 
