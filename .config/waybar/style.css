@@ -1,0 +1,98 @@
+@import "colors.css";
+
+* {
+    font-family: "JetBrainsMono Nerd Font", sans-serif;
+    font-size: 13px;
+    min-height: 0;
+}
+
+/* Barra transparente = modulos flotantes */
+window#waybar {
+    background-color: transparent;
+    color: @foreground;
+}
+
+/* Pildora base de cada modulo */
+#workspaces,
+#clock,
+#tray,
+#pulseaudio,
+#network,
+#bluetooth,
+#battery,
+#custom-weather,
+#custom-notification,
+#resources {
+    background-color: alpha(@background, 0.85);
+    padding: 2px 12px;
+    margin: 4px 3px;
+    border-radius: 12px;
+    color: @foreground;
+}
+
+/* Ventana: solo texto, sin fondo */
+#window {
+    background-color: alpha(@background, 0.85);
+    border-radius: 12px;
+    padding: 0 10px;
+    margin: 4px 3px;
+    color: @foreground;
+}
+
+/* Workspaces */
+#workspaces {
+    padding: 2px 6px;
+}
+#workspaces button {
+    padding: 0 6px;
+    color: @color3;
+    border-radius: 8px;
+}
+#workspaces button.active {
+    color: @accent;
+}
+#workspaces button:hover {
+    background-color: alpha(@accent, 0.3);
+    color: @foreground;
+}
+
+/* Grupo de recursos: una sola pildora, modulos internos sin fondo */
+#resources {
+    padding: 0 4px;
+}
+#resources #cpu,
+#resources #memory,
+#resources #disk,
+#resources #temperature {
+    background-color: transparent;
+    margin: 0;
+    padding: 2px 8px;
+    border-radius: 0;
+    color: @foreground;
+}
+
+/* Reloj destacado (centro) */
+#clock {
+    color: @accent;
+    font-weight: bold;
+}
+
+/* Clima */
+#custom-weather {
+    color: @accent;
+}
+
+/* Boton de notificaciones */
+#custom-notification {
+    font-size: 16px;
+    padding: 2px 14px;
+}
+
+/* Estados de bateria */
+#battery.warning {
+    color: #f9e2af;
+}
+#battery.critical {
+    background-color: alpha(#f38ba8, 0.2);
+    color: #f38ba8;
+}

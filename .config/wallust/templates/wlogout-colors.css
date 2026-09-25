@@ -1,0 +1,21 @@
+window {
+    background-color: {{background}}BF;
+}
+
+button {
+    color: {{foreground}};
+    background-color: {{color1}}D9;
+    border: 2px solid {{color8}};
+    border-radius: 20px;
+    margin: 14px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 25%;
+    transition: all 0.2s ease-in-out;
+}
+
+button:focus, button:active, button:hover {
+    background-color: {{color8}};
+    border-color: {{foreground}};
+    outline-style: none;
+}

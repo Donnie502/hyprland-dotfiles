@@ -1,0 +1,37 @@
+backend = "fastresize"
+color_space = "salience"
+palette = "saliencedark"
+
+[templates.waybar]
+template = "waybar-colors.css"
+target = "~/.config/waybar/colors.css"
+
+[templates.kitty]
+template = "kitty-colors.conf"
+target = "~/.config/kitty/colors.conf"
+
+[templates.cava]
+template = "cava-config"
+target = "~/.config/cava/config"
+
+[templates.rofi]
+template = "rofi-colors.rasi"
+target = "~/.config/rofi/colors.rasi"
+
+[templates.swaync]
+template = "swaync-colors.css"
+target = "~/.config/swaync/colors.css"
+
+[templates.wlogout]
+template = "wlogout-style.css"
+target = "~/.config/wlogout/style.css"
+
+
+
+[templates.eww]
+template = "eww-colors.scss"
+target = "~/.config/eww/colors.scss"
+
+[templates.hyprlock]
+template = "hyprlock-colors.conf"
+target = "~/.config/hypr/hyprlock-colors.conf"

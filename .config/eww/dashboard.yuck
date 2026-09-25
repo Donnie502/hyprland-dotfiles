@@ -1,0 +1,75 @@
+(defpoll ttime    :interval "1s"    :initial "--:--" "date '+%H:%M'")
+(defpoll tdate    :interval "60s"   :initial ""      "date '+%A, %d %B'")
+(defpoll wweather :interval "1800s" :initial "..."   `curl -s 'wttr.in/Chihuahua?format=%c+%t' 2>/dev/null || echo N/A`)
+(defpoll m_title  :interval "1s"    :initial ""      `playerctl metadata title 2>/dev/null || echo ''`)
+(defpoll m_artist :interval "1s"    :initial ""      `playerctl metadata artist 2>/dev/null || echo ''`)
+(defpoll m_status :interval "1s"    :initial ""      `playerctl status 2>/dev/null || echo ''`)
+(defpoll m_art    :interval "2s"    :initial ""      "$HOME/.config/eww/scripts/art.sh")
+(defpoll volume   :interval "1s"    :initial "0"     `wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print int($2*100)}'`)
+(defpoll bright   :interval "5s"    :initial "50"    `brightnessctl -m | awk -F, '{print $4}' | tr -d '%'`)
+(defpoll notifs   :interval "2s"    :initial "[]"    `cat ~/.cache/eww-notifs.json 2>/dev/null || echo "[]"`)
+
+(defwidget qbtn [label cmd]
+  (button :class "qbtn" :onclick "${cmd} & /home/donnie502/.local/bin/eww close dashboard"
+    (label :text label)))
+
+(defwidget media []
+  (box :class "media" :orientation "h" :space-evenly false :spacing 12
+    (image :class "media-art" :path m_art :image-width 72 :image-height 72)
+    (box :orientation "v" :space-evenly false :spacing 4 :hexpand true
+      (label :class "media-title" :text m_title :limit-width 26 :halign "start")
+      (label :class "media-artist" :text m_artist :limit-width 26 :halign "start")
+      (box :orientation "h" :space-evenly false :halign "start" :spacing 16
+        (button :class "mbtn" :onclick "playerctl previous" (label :text "⏮"))
+        (button :class "mbtn" :onclick "playerctl play-pause" (label :text {m_status == "Playing" ? "⏸" : "▶"}))
+        (button :class "mbtn" :onclick "playerctl next" (label :text "⏭"))))))
+
+(defwidget notifpanel []
+  (box :class "notifwrap" :orientation "v" :space-evenly false :spacing 6
+    (box :orientation "h" :space-evenly false
+      (label :class "notif-title" :text "Notificaciones" :halign "start" :hexpand true)
+      (button :class "notif-clear" :onclick "echo '[]' > ~/.cache/eww-notifs.json & swaync-client -C"
+        (label :text "Limpiar")))
+    (label :class "notif-empty" :text "Sin notificaciones" :visible {arraylength(notifs) == 0})
+    (scroll :vscroll true :hscroll false :vexpand true :class "notif-scroll"
+      (box :orientation "v" :space-evenly false :spacing 8
+        (for n in notifs
+          (box :class "notif" :orientation "v" :space-evenly false :spacing 2
+            (label :class "notif-app"  :text {n.app}     :halign "start")
+            (label :class "notif-sum"  :text {n.summary} :halign "start" :limit-width 42)
+            (label :class "notif-body" :text {n.body}    :halign "start" :limit-width 42 :wrap true)))))))
+
+(defwidget dash-content []
+  (box :class "dash" :orientation "v" :space-evenly false :spacing 12
+    (box :class "clockbox" :orientation "v" :space-evenly false :halign "center" :spacing 2
+      (label :class "dash-clock" :text ttime)
+      (label :class "dash-date" :text tdate)
+      (label :class "dash-weather" :text wweather))
+    (media)
+    (box :class "qgrid" :orientation "h" :space-evenly true :spacing 8
+      (qbtn :label "Wifi" :cmd "/home/donnie502/.config/hypr/scripts/nmtui-themed.sh")
+      (qbtn :label "Bluetooth" :cmd "blueman-manager")
+      (qbtn :label "Audio" :cmd "pavucontrol"))
+    (box :class "qgrid" :orientation "h" :space-evenly true :spacing 8
+      (qbtn :label "Pantallas" :cmd "nwg-displays")
+      (qbtn :label "Apariencia" :cmd "nwg-look")
+      (qbtn :label "Energia" :cmd "/home/donnie502/.config/hypr/scripts/power-profile.sh"))
+    (box :class "sliders" :orientation "v" :space-evenly false :spacing 12
+      (box :orientation "h" :space-evenly false :spacing 12
+        (label :class "sld-ico" :text "󰕾")
+        (scale :class "sld" :hexpand true :value volume :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ {}%" :min 0 :max 101))
+      (box :orientation "h" :space-evenly false :spacing 12
+        (label :class "sld-ico" :text "󰃟")
+        (scale :class "sld" :hexpand true :value bright :onchange "brightnessctl set {}%" :min 1 :max 100)))
+    (notifpanel)))
+
+(defwindow dashboard
+  :monitor 0
+  :geometry (geometry :x "0%" :y "0%" :width "100%" :height "100%" :anchor "center")
+  :stacking "overlay"
+  :focusable false
+  (overlay
+    (eventbox :onclick "/home/donnie502/.local/bin/eww close dashboard"
+      (box :class "catcher"))
+    (box :halign "center" :valign "start"
+      (box :width 470 (dash-content)))))

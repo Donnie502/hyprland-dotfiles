@@ -1,0 +1,45 @@
+# --- Runtime ---
+hyprland
+hyprlock
+hypridle
+waybar
+SwayNotificationCenter
+rofi
+cava
+mangohud
+mangohud.i686
+easyeffects
+blueman
+brightnessctl
+playerctl
+wl-clipboard
+cliphist
+grim
+slurp
+swaybg
+tuned
+nwg-look
+nwg-displays
+wob
+gnome-keyring
+kitty
+thunar
+pavucontrol
+jetbrains-mono-fonts-all
+NetworkManager
+# --- Utilidades / build ---
+git
+curl
+unzip
+rust
+cargo
+# --- Dependencias para compilar eww ---
+gtk3-devel
+gtk-layer-shell-devel
+gdk-pixbuf2-devel
+cairo-devel
+cairo-gobject-devel
+pango-devel
+glib2-devel
+dbus-devel
+libdbusmenu-gtk3-devel

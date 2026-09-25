@@ -1,0 +1,7 @@
+* {
+    bg0:     {{background}}BF;
+    bg1:     {{color1}}D9;
+    fg0:     {{foreground}};
+    accent:  {{color6}};
+    border:  {{color4}};
+}

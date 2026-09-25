@@ -1,0 +1,78 @@
+@import "colors.scss";
+
+* { all: unset; }
+
+/* Barras de musica */
+.cava { padding: 0 10px; }
+.bar { background-color: $bar; min-width: 8px; border-radius: 3px; }
+
+/* Dashboard */
+.dash {
+  margin-top: 14px;
+  font-family: "JetBrainsMono Nerd Font";
+  background-color: rgba($background, 0.97);
+  border: 2px solid rgba($bar, 0.5);
+  border-radius: 24px;
+  padding: 24px;
+}
+.dash-clock { font-size: 54px; font-weight: bold; color: $foreground; }
+.dash-date  { font-size: 16px; color: $bar; }
+.dash-weather { font-size: 18px; color: $foreground; margin-top: 6px; }
+
+.media {
+  background-color: rgba($bar, 0.12);
+  border: 1px solid rgba($bar, 0.3);
+  border-radius: 16px;
+  padding: 12px;
+}
+.media-art { border-radius: 12px; }
+.media-title { font-size: 15px; font-weight: bold; color: $foreground; }
+.media-artist { font-size: 12px; color: $bar; }
+.mbtn { color: $foreground; font-size: 20px; padding: 4px 6px; }
+.mbtn:hover { color: $bar; }
+
+.qbtn {
+  background-color: rgba($bar, 0.18);
+  border: 1px solid rgba($bar, 0.45);
+  border-radius: 12px;
+  padding: 12px 6px;
+  color: $foreground;
+  font-size: 13px;
+}
+.qbtn:hover { background-color: rgba($bar, 0.4); color: $background; }
+
+.sld-ico { font-size: 20px; color: $bar; }
+.sld { min-height: 16px; }
+.sld trough {
+  background-color: rgba($foreground, 0.25);
+  border-radius: 12px;
+  min-height: 8px;
+}
+.sld highlight { background-color: $bar; border-radius: 12px; }
+.sld slider {
+  background-color: $foreground;
+  border-radius: 999px;
+  min-width: 16px;
+  min-height: 16px;
+  margin: -6px;
+}
+
+.metric {
+  background-color: rgba($bar, 0.15);
+  border: 1px solid rgba($bar, 0.4);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+.metric-val  { font-size: 24px; font-weight: bold; color: $bar; }
+.metric-name { font-size: 12px; color: $foreground; }
+
+/* Notificaciones */
+.notif-title { font-size: 15px; font-weight: bold; color: $foreground; }
+.notif-clear { background-color: rgba($bar,0.2); border:1px solid rgba($bar,0.4); border-radius:10px; padding:4px 10px; color:$foreground; font-size:12px; }
+.notif-clear:hover { background-color: rgba($bar,0.4); color:$background; }
+.notif-scroll { min-height: 160px; }
+.notif { background-color: rgba($bar,0.10); border:1px solid rgba($bar,0.3); border-radius:12px; padding:10px; }
+.notif-app  { font-size: 11px; color: $bar; }
+.notif-sum  { font-size: 14px; font-weight: bold; color: $foreground; }
+.notif-body { font-size: 12px; color: rgba($foreground,0.8); }
+.notif-empty { color: rgba($foreground,0.5); font-size: 13px; }

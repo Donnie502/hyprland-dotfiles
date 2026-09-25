@@ -1,0 +1,45 @@
+* {
+    background-image: none;
+    font-family: "JetBrainsMono Nerd Font";
+}
+
+window {
+    background-color: alpha({{background}}, 0.80);
+}
+
+button {
+    color: {{foreground}};
+    background-color: alpha({{color1}}, 0.88);
+    border: 2px solid {{color8}};
+    border-radius: 20px;
+    margin: 14px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 25%;
+    transition: all 0.2s ease-in-out;
+}
+
+button:focus, button:active, button:hover {
+    background-color: {{color8}};
+    border-color: {{foreground}};
+    outline-style: none;
+}
+
+#lock {
+    background-image: image(url("/usr/share/wlogout/icons/lock.png"));
+}
+#logout {
+    background-image: image(url("/usr/share/wlogout/icons/logout.png"));
+}
+#suspend {
+    background-image: image(url("/usr/share/wlogout/icons/suspend.png"));
+}
+#reboot {
+    background-image: image(url("/usr/share/wlogout/icons/reboot.png"));
+}
+#shutdown {
+    background-image: image(url("/usr/share/wlogout/icons/shutdown.png"));
+}
+#hibernate {
+    background-image: image(url("/usr/share/wlogout/icons/hibernate.png"));
+}

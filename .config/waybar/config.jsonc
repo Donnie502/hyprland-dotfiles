@@ -1,0 +1,121 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 32,
+    "spacing": 4,
+    "modules-left": [
+        "hyprland/workspaces",
+        "hyprland/window"
+    ],
+    "modules-center": [
+        "clock"
+    ],
+    "modules-right": [
+        "custom/weather",
+        "tray",
+        "pulseaudio",
+        "network",
+        "bluetooth",
+        "group/resources",
+        "battery",
+        "custom/notification"
+    ],
+
+    "hyprland/workspaces": {
+        "format": "{icon}",
+        "format-icons": {
+            "active": "\uf111",
+            "default": "\uf10c"
+        }
+    },
+    "hyprland/window": {
+        "format": "{title}",
+        "max-length": 40
+    },
+    "clock": {
+        "format": "{:%H:%M   %a %d %b}",
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+        "on-click": "/home/donnie502/.local/bin/eww open --toggle dashboard"
+    },
+    "tray": {
+        "spacing": 10
+    },
+    "pulseaudio": {
+        "format": "{icon} {volume}%",
+        "format-muted": "\uf026 muted",
+        "format-icons": {
+            "default": ["\uf026", "\uf027", "\uf028"]
+        },
+        "on-click": "pwvucontrol 2>/dev/null || pavucontrol"
+    },
+    "network": {
+        "format-wifi": "\uf1eb  {essid} ({signalStrength}%)",
+        "format-ethernet": "\uf796 {ifname}",
+        "format-disconnected": "\uf127 disconnected",
+        "tooltip-format": "{ifname}: {ipaddr}/{cidr}",
+        "on-click": "kitty --title nmtui -e nmtui"
+    },
+    "bluetooth": {
+        "format": "\uf293",
+        "format-connected": "\uf293 {device_alias}",
+        "tooltip-format": "{status}",
+        "on-click": "blueman-manager"
+    },
+    "group/resources": {
+        "orientation": "inherit",
+        "modules": [
+            "cpu",
+            "memory",
+            "disk",
+            "temperature"
+        ],
+        "on-click": "kitty --title btop -e btop"
+    },
+    "cpu": {
+        "format": "\uf4bc {usage}%",
+        "tooltip": true,
+        "tooltip-format": "CPU: {usage}%",
+        "on-click": "kitty --title btop -e btop"
+    },
+    "memory": {
+        "format": "\uf538 {percentage}%",
+        "tooltip-format": "RAM: {used:0.1f}G / {total:0.1f}G",
+        "on-click": "kitty --title btop -e btop"
+    },
+    "disk": {
+        "format": "\uf0a0 {percentage_used}%",
+        "path": "/",
+        "tooltip-format": "{used} usado de {total} ({percentage_used}%)",
+        "on-click": "kitty --title btop -e btop"
+    },
+    "temperature": {
+        "format": "{icon} {temperatureC}°C",
+        "format-icons": ["\uf2cb", "\uf2c9", "\uf2c7"],
+        "tooltip": false,
+        "on-click": "kitty --title btop -e btop"
+    },
+    "battery": {
+        "bat": "BAT0",
+        "on-click": "/home/donnie502/.config/hypr/scripts/power-profile.sh",
+        "format": "{icon} {capacity}%",
+        "format-charging": "\uf0e7 {capacity}%",
+        "format-icons": ["\uf244", "\uf243", "\uf242", "\uf241", "\uf240"],
+        "states": {
+            "warning": 20,
+            "critical": 10
+        }
+    },
+    "custom/weather": {
+        "exec": "curl -s 'wttr.in/Chihuahua?format=%c+%t' 2>/dev/null || echo 'N/A'",
+        "interval": 1800,
+        "tooltip": true,
+        "tooltip-format": "Clima en Chihuahua",
+        "on-click": "brave-browser 'https://wttr.in/Chihuahua' &"
+    },
+    "custom/notification": {
+        "tooltip": false,
+        "format": "\uf0f3",
+        "on-click": "swaync-client --toggle-panel",
+        "escape": true
+    }
+}

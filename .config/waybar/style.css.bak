@@ -1,0 +1,47 @@
+@import "colors.css";
+
+* {
+    font-family: "JetBrainsMono Nerd Font", sans-serif;
+    font-size: 13px;
+}
+
+window#waybar {
+    background-color: alpha(@background, 0.9);
+    color: @foreground;
+}
+
+#workspaces button {
+    padding: 0 8px;
+    color: @color3;
+}
+
+#workspaces button.active {
+    color: @accent;
+}
+
+#clock, #tray, #pulseaudio, #network, #bluetooth, #cpu, #temperature, #battery, #window, #disk, #custom-weather {
+    padding: 0 10px;
+    color: @foreground;
+}
+
+#battery.warning {
+    color: #f9e2af;
+}
+
+#battery.critical {
+    color: #f38ba8;
+}
+
+#custom-weather {
+    color: @accent;
+}
+
+#disk {
+    color: @foreground;
+}
+
+#custom-notification {
+    font-size: 16px;
+    padding: 0 12px;
+    color: @foreground;
+}

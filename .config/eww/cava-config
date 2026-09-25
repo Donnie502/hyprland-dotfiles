@@ -1,0 +1,15 @@
+[general]
+bars = 128
+framerate = 30
+sensitivity = 100
+
+[output]
+method = raw
+raw_target = /dev/stdout
+data_format = ascii
+ascii_max_range = 180
+bar_delimiter = 59
+frame_delimiter = 10
+
+[smoothing]
+noise_reduction = 0.3

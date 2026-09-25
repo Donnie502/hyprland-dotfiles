@@ -1,0 +1,14 @@
+# Colores generados por wallust (se regeneran en la instalacion)
+.config/waybar/colors.css
+.config/swaync/colors.css
+.config/rofi/colors.rasi
+.config/eww/colors.scss
+.config/kitty/colors.conf
+.config/cava/config
+.config/wlogout/style.css
+.config/hypr/hyprlock-colors.conf
+# Fondo del lock (se genera del wallpaper actual)
+.config/hypr/lockbg.jpg
+# Caches / logs
+*.log
+*.cache

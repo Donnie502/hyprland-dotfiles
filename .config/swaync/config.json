@@ -1,0 +1,74 @@
+{
+    "positionX": "right",
+    "positionY": "top",
+    "control-center-width": 380,
+    "control-center-height": 600,
+    "control-center-margin-top": 10,
+    "control-center-margin-right": 10,
+    "notification-window-width": 380,
+    "timeout": 5,
+    "timeout-low": 3,
+    "timeout-critical": 0,
+    "fit-to-screen": true,
+    "control-center-layer": "overlay",
+    "layer-shell": true,
+    "cssPriority": "user",
+    "notification-2fa-action": true,
+    "widgets": [
+        "title",
+        "dnd",
+        "mpris",
+        "buttons-grid",
+        "volume",
+        "backlight",
+        "notifications"
+    ],
+    "widget-config": {
+        "title": {
+            "text": "Notificaciones",
+            "clear-all-button": true,
+            "button-text": "Limpiar todo"
+        },
+        "dnd": {
+            "text": "No molestar"
+        },
+        "volume": {
+            "label": ""
+        },
+        "backlight": {
+            "label": ""
+        },
+        "buttons-grid": {
+            "actions": [
+                {
+                    "label": "  Wifi",
+                    "command": "/home/donnie502/.config/hypr/scripts/nmtui-themed.sh"
+                },
+                {
+                    "label": "  Bluetooth",
+                    "command": "blueman-manager"
+                },
+                {
+                    "label": "  Audio",
+                    "command": "pavucontrol"
+                },
+                {
+                    "label": "  Pantallas",
+                    "command": "nwg-displays"
+                },
+                {
+                    "label": "  Apariencia",
+                    "command": "nwg-look"
+                },
+                {
+                    "label": "  Bloquear",
+                    "command": "hyprlock"
+                },
+                {
+                    "label": "  Energía",
+                    "command": "/home/donnie502/.config/hypr/scripts/power-profile.sh"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,21 @@
+window {
+    background-color: #090302BF;
+}
+
+button {
+    color: #FFB740;
+    background-color: #2E2405D9;
+    border: 2px solid #D06900;
+    border-radius: 20px;
+    margin: 14px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 25%;
+    transition: all 0.2s ease-in-out;
+}
+
+button:focus, button:active, button:hover {
+    background-color: #D06900;
+    border-color: #FFB740;
+    outline-style: none;
+}

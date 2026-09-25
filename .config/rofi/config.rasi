@@ -1,0 +1,89 @@
+configuration {
+    modi: "drun";
+    click-to-exit: true;
+    show-icons: true;
+    icon-theme: "candy-icons";
+    display-drun: "Apps";
+    drun-display-format: "{name}";
+    font: "JetBrainsMono Nerd Font 12";
+}
+
+@import "colors.rasi"
+
+* {
+    background-color: transparent;
+    text-color: @fg0;
+}
+
+window {
+    fullscreen: true;
+    background-color: rgba(0, 0, 0, 0.4);
+    padding: 26% 34%;
+}
+
+mainbox {
+    background-color: @bg0;
+    border: 2px;
+    border-color: @border;
+    border-radius: 14px;
+    padding: 16px;
+    children: [inputbar, listview];
+    spacing: 10px;
+}
+
+inputbar {
+    background-color: @bg1;
+    border-radius: 10px;
+    padding: 10px 14px;
+    children: [entry];
+}
+
+entry {
+    background-color: transparent;
+    text-color: @fg0;
+    placeholder: "Buscar...";
+    placeholder-color: @accent;
+}
+
+listview {
+    background-color: transparent;
+    lines: 8;
+    spacing: 6px;
+    scrollbar: false;
+}
+
+element {
+    background-color: transparent;
+    padding: 8px 10px;
+    border-radius: 10px;
+    text-color: @fg0;
+}
+
+element selected {
+    background-color: @accent;
+    text-color: @bg0;
+}
+
+element-icon {
+    size: 24px;
+}
+
+element-text {
+    background-color: transparent;
+    text-color: inherit;
+}
+
+element normal.normal, element alternate.normal {
+    background-color: transparent;
+    text-color: @fg0;
+}
+
+element normal.urgent, element alternate.urgent {
+    background-color: transparent;
+    text-color: #f38ba8;
+}
+
+element selected.normal, element selected.urgent {
+    background-color: @accent;
+    text-color: @bg0;
+}
