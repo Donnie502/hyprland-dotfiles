@@ -34,7 +34,6 @@ pkill -9 eww 2>/dev/null
 sleep 1
 ~/.local/bin/eww daemon
 sleep 1
-~/.local/bin/eww open-many bars-top bars-bottom
 python3 ~/.config/eww/scripts/notif-listener.py &
 ibus-daemon -drxR & disown
 easyeffects --gapplication-service & disown

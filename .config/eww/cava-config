@@ -1,6 +1,6 @@
 [general]
-bars = 128
-framerate = 30
+bars = 45
+framerate = 15
 sensitivity = 100
 
 [output]
