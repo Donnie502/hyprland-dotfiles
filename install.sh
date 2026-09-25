@@ -11,6 +11,7 @@ sudo dnf install -y dbus-tools 2>/dev/null || sudo dnf install -y dbus-x11 2>/de
 
 echo ">>> [2/8] Habilitando tuned (perfiles de energia)..."
 sudo systemctl enable --now tuned || true
+sudo systemctl enable --now thermald || true
 sudo tuned-adm profile balanced || true
 
 echo ">>> [3/8] Instalando wallust (cargo)..."
