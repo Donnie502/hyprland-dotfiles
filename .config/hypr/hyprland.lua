@@ -1,6 +1,17 @@
 ------------------
 ---- MONITORS ----
 ------------------
+-- Regla comodin: cualquier monitor que no este listado abajo usa su
+-- mejor modo. Va primero para que las reglas especificas la pisen.
+-- Sin esto, en otra maquina (o en una VM) Hyprland arranca con la
+-- resolucion minima y todo se ve gigante.
+hl.monitor({
+    output   = "",
+    mode     = "preferred",
+    position = "auto",
+    scale    = 1,
+})
+
 hl.monitor({
     output   = "eDP-1",
     mode     = "1920x1200@165.00",
