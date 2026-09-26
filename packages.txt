@@ -3,6 +3,9 @@ hyprland
 hyprlock
 hypridle
 xdg-desktop-portal-hyprland
+# hyprland-qtutils se renombro a hyprland-guiutils. Dejamos los dos:
+# --skip-unavailable ignora el que no exista en el repo que toque.
+hyprland-guiutils
 hyprland-qtutils
 waybar
 SwayNotificationCenter
