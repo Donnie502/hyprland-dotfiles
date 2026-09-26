@@ -37,3 +37,13 @@ sleep 1
 python3 ~/.config/eww/scripts/notif-listener.py &
 ibus-daemon -drxR & disown
 easyeffects --gapplication-service & disown
+
+# Portapapeles compartido con la maquina anfitriona (VMware).
+# vmtoolsd sincroniza el portapapeles por X11, no por Wayland, asi que
+# hay que arrancarlo con el DISPLAY de Xwayland. Sin esto no se puede
+# copiar del anfitrion a la VM bajo Hyprland (en GNOME si funciona
+# porque GNOME lo arranca por su cuenta).
+if [ "$(systemd-detect-virt 2>/dev/null)" = "vmware" ] && command -v vmtoolsd >/dev/null 2>&1; then
+    pkill -f 'vmtoolsd -n vmusr' 2>/dev/null
+    DISPLAY="${DISPLAY:-:0}" vmtoolsd -n vmusr &
+fi
