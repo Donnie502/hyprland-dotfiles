@@ -19,7 +19,15 @@ if hypr_ok; then
   echo "    Hyprland ya esta disponible en los repos actuales."
 else
   echo "    No esta en los repos base. Probando COPRs conocidos..."
-  for REPO in ashbuk/Hyprland-Fedora mpapacc/hyprland solopasha/hyprland; do
+  # Orden importante: mpapacc/hyprland (de sbOogway/hyprland-fedora-44)
+  # va primero porque usa builds hermeticos: trae sus propias
+  # libhyprutils/libhyprlang/libhyprgraphics/libaquamarine en
+  # /usr/libexec/hyprland/vendor/. Los COPRs que enlazan contra las
+  # librerias del sistema quedan contra la hyprutils 0.7.1 de Fedora,
+  # cuando Hyprland 0.56 pide >= 0.8.0: el compositor arranca pero se
+  # comporta erratico (clientes que mueren con errores de protocolo
+  # wayland, portapapeles roto, notificaciones que no salen).
+  for REPO in mpapacc/hyprland ashbuk/Hyprland-Fedora solopasha/hyprland; do
     echo "    -> probando $REPO"
     sudo dnf copr enable -y "$REPO" >/dev/null 2>&1 \
       || sudo dnf copr enable -y "$REPO" fedora-rawhide-x86_64 >/dev/null 2>&1 \
