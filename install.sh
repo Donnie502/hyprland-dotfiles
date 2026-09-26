@@ -44,8 +44,17 @@ sudo systemctl enable --now thermald || true
 sudo tuned-adm profile balanced || true
 
 echo ">>> [4/9] Instalando wallust (cargo)..."
-export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
 command -v wallust >/dev/null 2>&1 || cargo install wallust
+
+# cargo instala en ~/.cargo/bin y eww se copia a ~/.local/bin; ninguno
+# de los dos esta en el PATH por defecto en Fedora. Sin esto wallust
+# "no existe" para los scripts y los colores nunca se regeneran.
+for RC in "$HOME/.bashrc" "$HOME/.profile"; do
+  [ -f "$RC" ] || continue
+  grep -q '.cargo/bin' "$RC" || \
+    echo 'export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"' >> "$RC"
+done
 
 echo ">>> [5/9] Compilando eww (visualizador y dashboard)..."
 if [ ! -x "$HOME/.local/bin/eww" ]; then
@@ -99,6 +108,12 @@ fi
 
 # Si estamos en una maquina virtual, instalar los drivers de invitado
 # (arregla la resolucion/zoom y el portapapeles compartido)
+LOCAL_LUA="$HOME/.config/hypr/local.lua"
+mkdir -p "$HOME/.config/hypr"
+: > "$LOCAL_LUA"
+echo '-- Generado por install.sh: ajustes de ESTA maquina.' >> "$LOCAL_LUA"
+echo '-- Se regenera en cada instalacion; no lo edites a mano.' >> "$LOCAL_LUA"
+
 VIRT="$(systemd-detect-virt 2>/dev/null || echo none)"
 case "$VIRT" in
   vmware)
@@ -114,6 +129,18 @@ case "$VIRT" in
     sudo dnf install -y --skip-unavailable virtualbox-guest-additions || true
     ;;
 esac
+
+# En una VM el driver 3D del hipervisor (SVGA3D/virgl) rompe a los
+# clientes que usan OpenGL de escritorio: kitty muere al arrancar con
+# "invalid arguments for wl_surface.attach" y la tuberia de Wayland se
+# corta. Forzando el render por software (llvmpipe) arrancan bien.
+if [ "$VIRT" != "none" ]; then
+  echo ">>> VM detectada: forzando render por software para los clientes..."
+  {
+    echo 'hl.env("LIBGL_ALWAYS_SOFTWARE", "1")'
+    echo 'hl.env("WLR_RENDERER_ALLOW_SOFTWARE", "1")'
+  } >> "$LOCAL_LUA"
+fi
 
 # Desactivar autologin de GDM para poder elegir la sesion Hyprland
 if [ -f /etc/gdm/custom.conf ] && grep -q '^AutomaticLoginEnable=[Tt]rue' /etc/gdm/custom.conf; then

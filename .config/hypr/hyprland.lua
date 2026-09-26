@@ -19,6 +19,11 @@ hl.monitor({
     scale    = 1,
 })
 
+-- Ajustes propios de esta maquina (monitores, variables de entorno).
+-- Lo genera install.sh; no vive en el repo, asi que no se pisa al
+-- actualizar. Va aqui: despues de los monitores y antes del autostart.
+pcall(dofile, os.getenv("HOME") .. "/.config/hypr/local.lua")
+
 ---------------------
 ---- MY PROGRAMS ----
 ---------------------

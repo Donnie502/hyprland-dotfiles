@@ -26,6 +26,7 @@ nwg-displays
 wob
 gnome-keyring
 kitty
+foot
 thunar
 pavucontrol
 jetbrains-mono-fonts-all
