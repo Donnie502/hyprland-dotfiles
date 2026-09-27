@@ -27,6 +27,27 @@ pantalla de inicio (engrane abajo a la derecha) elige **Hyprland**.
 - Si falta algo obligatorio, se detiene y dice qué; los opcionales solo se avisan.
 - Se puede volver a correr sin romper nada.
 
+## Desinstalación
+
+    ~/dotfiles/uninstall.sh              # muestra el plan y pide escribir SI
+    ~/dotfiles/uninstall.sh --simular    # solo muestra el plan, no cambia nada
+    ~/dotfiles/uninstall.sh --si         # sin preguntar
+
+Quita exactamente lo que agregó el instalador (lo anota en
+`~/.local/share/hyprland-dotfiles/registro`) y regresa tu configuración
+anterior, el tema de GNOME y el inicio automático de GDM si los cambió.
+
+- Nunca quita paquetes que Fedora o GNOME necesitan (NetworkManager,
+  python3, git, tuned, las herramientas de máquina virtual, etc.) ni los
+  que ya tenías antes de instalar.
+- De carpetas que pueden ser tuyas (kitty, MangoHud, environment.d) solo
+  borra los archivos que puso el repo.
+- Los wallpapers solo se borran si siguen idénticos a los del repo.
+- Si instalaste con una versión vieja del instalador (sin registro), quita
+  solo lo exclusivo de este escritorio. Si no encuentra estos dotfiles, no
+  toca nada.
+- Los respaldos `~/.config-respaldo-*` y el repo se quedan; bórralos tú.
+
 ## Atajos principales
 | Atajo | Acción |
 |-------|--------|
