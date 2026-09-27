@@ -1,188 +1,265 @@
 #!/usr/bin/env bash
-# Instalador de dotfiles Hyprland para Fedora
-set -e
+# ==================================================================
+#  Instalador de los dotfiles de Hyprland para Fedora (43 / 44)
+#
+#  Uso (como tu usuario, NO con sudo, idealmente desde GNOME):
+#     git clone https://github.com/Donnie502/hyprland-dotfiles ~/dotfiles
+#     ~/dotfiles/install.sh
+#
+#  Se puede volver a correr sin romper nada. Todo lo que imprime se
+#  guarda tambien en ~/dotfiles-install.log
+# ==================================================================
+set -Ee
+
 DOTS="$(cd "$(dirname "$0")" && pwd)"
 OLDHOME="/home/donnie502"
+HYPR_COPR="ashbuk/Hyprland-Fedora"
+HYPR_MIN="0.55"   # la config es Lua (hyprland.lua): existe desde Hyprland 0.55
+HYPR_PKGS="hyprland hyprlock hypridle xdg-desktop-portal-hyprland"
+BRAVE_REPO="https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo"
+LOG="$HOME/dotfiles-install.log"
+TOTAL=10
 
-# ---------------------------------------------------------------
-# Fedora retiro hyprland de sus repos oficiales a partir de F43.
-# Buscamos un COPR que lo tenga para la version instalada.
-# ---------------------------------------------------------------
-hypr_ok() {
-  rpm -q hyprland >/dev/null 2>&1 && return 0
-  dnf list --available hyprland >/dev/null 2>&1
+# ---------------------------------------------------------------- utilidades
+exec > >(tee -a "$LOG") 2>&1
+
+paso()  { echo; echo "==> [$1/$TOTAL] $2"; }
+info()  { echo "    $*"; }
+aviso() { echo "    !! $*"; }
+falla() {
+  echo
+  echo "=================================================="
+  echo " ERROR: $*"
+  echo " Nada quedo a medias que impida volver a correrlo."
+  echo " Log completo: $LOG"
+  echo "=================================================="
+  exit 1
 }
+trap 'falla "fallo inesperado en la linea $LINENO: $BASH_COMMAND"' ERR
 
-echo ">>> [1/9] Configurando repositorio de Hyprland..."
-sudo dnf install -y 'dnf-command(copr)' >/dev/null 2>&1 || true
-if hypr_ok; then
-  echo "    Hyprland ya esta disponible en los repos actuales."
+# Version de Hyprland instalada ("0.56.2"), o vacio si no hay
+hypr_ver() { Hyprland --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1; }
+# ver_ge A B  ->  verdadero si A >= B
+ver_ge() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$2" ]; }
+# De una lista de paquetes, imprime los que estan instalados
+instalados() { for p in "$@"; do rpm -q "$p" >/dev/null 2>&1 && echo "$p"; done; return 0; }
+
+# ---------------------------------------------------------------- 0. revision
+echo "=================================================="
+echo " Dotfiles Hyprland  -  $(date '+%Y-%m-%d %H:%M')"
+echo "=================================================="
+[ "$(id -u)" -ne 0 ] || falla "No lo corras con sudo ni como root. Correlo asi: ~/dotfiles/install.sh"
+. /etc/os-release
+[ "${ID:-}" = "fedora" ] || falla "Este instalador es solo para Fedora (detectado: ${ID:-desconocido})."
+VIRT="$(systemd-detect-virt --vm 2>/dev/null || true)"
+[ -n "$VIRT" ] || VIRT="none"
+info "Fedora $VERSION_ID  |  maquina virtual: $VIRT"
+curl -fsS --max-time 20 -o /dev/null https://github.com \
+  || falla "Sin internet: no se alcanza github.com."
+
+echo "    Te va a pedir tu contrasena una sola vez."
+sudo -v || falla "Se necesita sudo."
+# Mantener sudo vivo: la compilacion de eww tarda mas que el timeout de sudo
+( trap - ERR; while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null; sleep 50; done ) &
+SUDO_KEEP=$!
+trap 'kill $SUDO_KEEP 2>/dev/null || true' EXIT
+
+# ---------------------------------------------------------------- 1. Hyprland
+paso 1 "Hyprland (COPR $HYPR_COPR)"
+# Fedora retiro Hyprland de sus repos oficiales desde F43. El COPR de
+# ashbuk empaqueta Hyprland >= 0.55 con sus librerias hypr* propias
+# (vendorizadas), asi que no choca con las viejas de Fedora.
+V="$(hypr_ver)"
+if [ -n "$V" ] && ver_ge "$V" "$HYPR_MIN"; then
+  info "Hyprland $V ya instalado (>= $HYPR_MIN). No se toca."
 else
-  echo "    No esta en los repos base. Probando COPRs conocidos..."
-  # Orden importante: mpapacc/hyprland (de sbOogway/hyprland-fedora-44)
-  # va primero porque usa builds hermeticos: trae sus propias
-  # libhyprutils/libhyprlang/libhyprgraphics/libaquamarine en
-  # /usr/libexec/hyprland/vendor/. Los COPRs que enlazan contra las
-  # librerias del sistema quedan contra la hyprutils 0.7.1 de Fedora,
-  # cuando Hyprland 0.56 pide >= 0.8.0: el compositor arranca pero se
-  # comporta erratico (clientes que mueren con errores de protocolo
-  # wayland, portapapeles roto, notificaciones que no salen).
-  for REPO in mpapacc/hyprland ashbuk/Hyprland-Fedora solopasha/hyprland; do
-    echo "    -> probando $REPO"
-    sudo dnf copr enable -y "$REPO" >/dev/null 2>&1 \
-      || sudo dnf copr enable -y "$REPO" fedora-rawhide-x86_64 >/dev/null 2>&1 \
-      || continue
-    if hypr_ok; then
-      echo "    OK: usando $REPO"
-      break
+  [ -z "$V" ] || aviso "Hyprland $V es muy viejo para esta config (Lua, pide >= $HYPR_MIN). Se reemplaza."
+  sudo dnf install -y 'dnf-command(copr)'
+  # COPRs que dan un Hyprland viejo (sin config Lua) o de rawhide
+  for R in mpapacc/hyprland solopasha/hyprland; do
+    if compgen -G "/etc/yum.repos.d/*${R/\//:}*.repo" >/dev/null; then
+      info "Quitando el COPR $R (no sirve con esta config)"
+      sudo dnf copr remove -y "$R" 2>/dev/null || sudo dnf copr disable -y "$R" || true
     fi
-    sudo dnf copr disable -y "$REPO" >/dev/null 2>&1 || true
   done
+  sudo dnf copr enable -y "$HYPR_COPR" \
+    || falla "No se pudo activar el COPR $HYPR_COPR. Puede que aun no tenga paquetes para Fedora $VERSION_ID."
+  VIEJOS="$(instalados $HYPR_PKGS)"
+  if [ -n "$VIEJOS" ]; then
+    info "Quitando la version anterior: $(echo $VIEJOS)"
+    sudo dnf remove -y $VIEJOS
+  fi
+  sudo dnf install -y $HYPR_PKGS
+  V="$(hypr_ver)"
 fi
-hypr_ok || echo "    !! ADVERTENCIA: no se encontro hyprland en ningun repo."
+{ [ -n "$V" ] && ver_ge "$V" "$HYPR_MIN"; } \
+  || falla "Hyprland ${V:-no se instalo}. Esta config necesita Hyprland >= $HYPR_MIN."
+info "OK: Hyprland $V"
 
-echo ">>> [2/9] Instalando paquetes de repos..."
-sudo dnf install -y --skip-unavailable $(grep -vE '^\s*#|^\s*$' "$DOTS/packages.txt")
-# dbus-monitor (para las notificaciones del dashboard)
-sudo dnf install -y dbus-tools 2>/dev/null || sudo dnf install -y dbus-x11 2>/dev/null || true
+# ---------------------------------------------------------------- 2. paquetes
+paso 2 "Paquetes de Fedora"
+REQ="$(grep -vE '^[[:space:]]*(#|$)' "$DOTS/packages.txt" | grep -v '^?' || true)"
+OPT="$(grep -E '^\?' "$DOTS/packages.txt" | sed 's/^?//' || true)"
+# --skip-unavailable solo para no abortar por un opcional; abajo se
+# revisa uno por uno y los obligatorios que falten detienen todo.
+sudo dnf install -y --skip-unavailable $REQ $OPT
+FALTA_OPT=""; for p in $OPT; do rpm -q "$p" >/dev/null 2>&1 || FALTA_OPT="$FALTA_OPT $p"; done
+FALTA_REQ=""; for p in $REQ; do rpm -q "$p" >/dev/null 2>&1 || FALTA_REQ="$FALTA_REQ $p"; done
+[ -z "$FALTA_OPT" ] || aviso "Opcionales que no estan en los repos (se omiten):$FALTA_OPT"
+[ -z "$FALTA_REQ" ] || falla "No se pudieron instalar paquetes obligatorios:$FALTA_REQ"
+info "OK: $(echo $REQ | wc -w) obligatorios instalados"
 
-echo ">>> [3/9] Habilitando tuned (perfiles de energia)..."
-sudo systemctl enable --now tuned || true
-sudo systemctl enable --now thermald || true
-sudo tuned-adm profile balanced || true
+# ---------------------------------------------------------------- 3. navegador
+paso 3 "Navegador (Brave, para SUPER+B)"
+if rpm -q brave-browser >/dev/null 2>&1; then
+  info "Brave ya instalado."
+else
+  sudo dnf install -y dnf-plugins-core
+  [ -f /etc/yum.repos.d/brave-browser.repo ] \
+    || sudo dnf config-manager addrepo --from-repofile="$BRAVE_REPO" \
+    || aviso "No se pudo agregar el repo de Brave."
+  sudo dnf install -y brave-browser \
+    || aviso "No se pudo instalar Brave: SUPER+B no abrira nada hasta que instales un navegador."
+fi
 
-echo ">>> [4/9] Instalando wallust (cargo)..."
-export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
-command -v wallust >/dev/null 2>&1 || cargo install wallust
+# ---------------------------------------------------------------- 4. energia
+paso 4 "Perfiles de energia"
+if command -v tuned-adm >/dev/null 2>&1; then
+  sudo systemctl enable --now tuned || aviso "No se pudo arrancar tuned."
+  sudo tuned-adm profile balanced || true
+fi
+if [ "$VIRT" = "none" ] && rpm -q thermald >/dev/null 2>&1; then
+  sudo systemctl enable --now thermald || aviso "thermald no arranco (normal si tu CPU no es Intel)."
+fi
 
-# cargo instala en ~/.cargo/bin y eww se copia a ~/.local/bin; ninguno
-# de los dos esta en el PATH por defecto en Fedora. Sin esto wallust
-# "no existe" para los scripts y los colores nunca se regeneran.
-for RC in "$HOME/.bashrc" "$HOME/.profile"; do
-  [ -f "$RC" ] || continue
-  grep -q '.cargo/bin' "$RC" || \
-    echo 'export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"' >> "$RC"
-done
+# ---------------------------------------------------------------- 5. wallust
+paso 5 "wallust (colores segun el wallpaper)"
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+[ -x "$HOME/.cargo/bin/wallust" ] || cargo install wallust
+# cargo lo deja en ~/.cargo/bin, que NO esta en el PATH de la sesion de
+# Hyprland; ~/.local/bin si. Los scripts llaman "wallust" a secas.
+mkdir -p "$HOME/.local/bin"
+ln -sf "$HOME/.cargo/bin/wallust" "$HOME/.local/bin/wallust"
 
-echo ">>> [5/9] Compilando eww (visualizador y dashboard)..."
-if [ ! -x "$HOME/.local/bin/eww" ]; then
+# ---------------------------------------------------------------- 6. eww
+paso 6 "eww (visualizador y dashboard; compilar tarda varios minutos)"
+if [ -x "$HOME/.local/bin/eww" ]; then
+  info "eww ya instalado."
+else
   rm -rf /tmp/eww-src
-  git clone https://github.com/elkowar/eww /tmp/eww-src
+  git clone --depth 1 https://github.com/elkowar/eww /tmp/eww-src
   ( cd /tmp/eww-src && cargo build --release --no-default-features --features wayland )
-  mkdir -p "$HOME/.local/bin"
   cp /tmp/eww-src/target/release/eww "$HOME/.local/bin/"
+  rm -rf /tmp/eww-src
 fi
 
-echo ">>> [6/9] Instalando candy-icons y Nerd Font..."
+# ---------------------------------------------------------------- 7. iconos y fuente
+paso 7 "Iconos (candy-icons) y fuente (JetBrainsMono Nerd Font)"
 mkdir -p "$HOME/.local/share/icons"
-[ -d "$HOME/.local/share/icons/candy-icons" ] || git clone --depth 1 https://github.com/EliverLara/candy-icons.git "$HOME/.local/share/icons/candy-icons"
-if ! fc-list | grep -qi "JetBrainsMono Nerd Font"; then
+[ -d "$HOME/.local/share/icons/candy-icons" ] \
+  || git clone --depth 1 https://github.com/EliverLara/candy-icons.git "$HOME/.local/share/icons/candy-icons"
+if ! fc-list | grep -i "JetBrainsMono Nerd Font" >/dev/null; then
   mkdir -p "$HOME/.local/share/fonts/JetBrainsMonoNF"
-  curl -L -o /tmp/jbm.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
-  unzip -o /tmp/jbm.zip -d "$HOME/.local/share/fonts/JetBrainsMonoNF"
-  fc-cache -f
+  curl -fL -o /tmp/jbm.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
+  unzip -oq /tmp/jbm.zip -d "$HOME/.local/share/fonts/JetBrainsMonoNF"
+  rm -f /tmp/jbm.zip
+  fc-cache -f >/dev/null
 fi
 
-echo ">>> [7/9] Copiando configuraciones y wallpapers..."
+# ---------------------------------------------------------------- 8. configs
+paso 8 "Configuraciones y wallpapers"
 mkdir -p "$HOME/.config" "$HOME/Pictures/wallpapers"
+BACKUP="$HOME/.config-respaldo-$(date +%Y%m%d-%H%M%S)"
+DIRS=""
+for d in "$DOTS/.config/"*; do
+  n="$(basename "$d")"
+  DIRS="$DIRS $n"
+  if [ -e "$HOME/.config/$n" ]; then
+    mkdir -p "$BACKUP"
+    cp -a "$HOME/.config/$n" "$BACKUP/"
+  fi
+done
+if [ -d "$BACKUP" ]; then info "Respaldo de tu config anterior: $BACKUP"; fi
 cp -r "$DOTS/.config/." "$HOME/.config/"
+# Restos de intentos anteriores: local.lua ya no se usa, y 90-vm-gl.conf
+# forzaba render por software tambien al compositor (via systemd).
+rm -f "$HOME/.config/hypr/local.lua" "$HOME/.config/environment.d/90-vm-gl.conf"
 cp -rn "$DOTS/wallpapers/"* "$HOME/Pictures/wallpapers/" 2>/dev/null || true
 chmod +x "$HOME/.config/hypr/scripts/"*.sh 2>/dev/null || true
 chmod +x "$HOME/.config/eww/scripts/"* 2>/dev/null || true
+# Las configs traen rutas absolutas de la maquina original
+if [ "$HOME" != "$OLDHOME" ]; then
+  for n in $DIRS; do
+    grep -rl "$OLDHOME" "$HOME/.config/$n" 2>/dev/null | while read -r f; do
+      sed -i "s#$OLDHOME#$HOME#g" "$f"
+    done
+  done
+  info "Rutas ajustadas: $OLDHOME -> $HOME"
+fi
 
-echo ">>> [8/9] Ajustando rutas ($OLDHOME -> $HOME)..."
-grep -rl "$OLDHOME" "$HOME/.config" 2>/dev/null | while read -r f; do
-  sed -i "s#$OLDHOME#$HOME#g" "$f"
-done
+# ---------------------------------------------------------------- 9. esta maquina
+paso 9 "Ajustes de esta maquina"
+HCONF="$HOME/.config/hypr/hyprland.lua"
+# Solo la linea de codigo (el comentario de hyprland.lua tambien la menciona)
+LIBGL_RE='^[[:space:]]+hl\.env\("LIBGL_ALWAYS_SOFTWARE"'
+case "$VIRT" in
+  vmware)   sudo dnf install -y --skip-unavailable open-vm-tools open-vm-tools-desktop ;;
+  kvm|qemu) sudo dnf install -y --skip-unavailable spice-vdagent qemu-guest-agent ;;
+  oracle)   sudo dnf install -y --skip-unavailable virtualbox-guest-additions ;;
+esac
+if [ "$VIRT" != "none" ]; then
+  # El 3D del hipervisor (SVGA3D en VMware) rompe a las apps OpenGL:
+  # kitty muere con "invalid arguments for wl_surface.attach". Con render
+  # por software arrancan bien. Se pone dentro de hyprland.start para que
+  # lo hereden solo las apps y no el compositor (ver hyprland.lua).
+  grep -qE "$LIBGL_RE" "$HCONF" \
+    || sed -i '/^hl.on("hyprland.start", function()/a\    hl.env("LIBGL_ALWAYS_SOFTWARE", "1") -- VM: agregado por install.sh' "$HCONF"
+  grep -qE "$LIBGL_RE" "$HCONF" || falla "No se pudo configurar el render por software en $HCONF"
+  info "VM: render por software para las apps (kitty y GTK4)."
+fi
+# Autologin de GDM impide elegir la sesion Hyprland
+if [ -f /etc/gdm/custom.conf ] && grep -q '^AutomaticLoginEnable=[Tt]rue' /etc/gdm/custom.conf; then
+  sudo sed -i 's/^AutomaticLoginEnable=[Tt]rue/AutomaticLoginEnable=false/' /etc/gdm/custom.conf
+  info "Autologin de GDM desactivado (para poder elegir Hyprland)."
+fi
 
-echo ">>> [9/9] Tema oscuro + generar colores del wallpaper..."
+# ---------------------------------------------------------------- 10. tema
+paso 10 "Tema oscuro y colores del wallpaper"
 gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
 gsettings set org.gnome.desktop.interface cursor-theme 'Adwaita' 2>/dev/null || true
-FIRST=$(find "$HOME/Pictures/wallpapers" -maxdepth 1 -type f | head -1)
-[ -n "$FIRST" ] && "$HOME/.cargo/bin/wallust" run "$FIRST" 2>/dev/null || true
-
-# Sesion para el gestor de inicio (GDM/SDDM) si el paquete no la creo
-if command -v Hyprland >/dev/null 2>&1 && [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
-  echo ">>> Creando entrada de sesion para el gestor de inicio..."
-  sudo mkdir -p /usr/share/wayland-sessions
-  printf '%s\n' \
-    '[Desktop Entry]' \
-    'Name=Hyprland' \
-    'Comment=An intelligent dynamic tiling Wayland compositor' \
-    'Exec=Hyprland' \
-    'Type=Application' \
-    | sudo tee /usr/share/wayland-sessions/hyprland.desktop >/dev/null
+FIRST="$(find "$HOME/Pictures/wallpapers" -maxdepth 1 -type f | sort | head -1)"
+if [ -n "$FIRST" ]; then
+  wallust run "$FIRST" >/dev/null 2>&1 || aviso "wallust no pudo generar colores (se usan los del repo)."
 fi
 
-# Si estamos en una maquina virtual, instalar los drivers de invitado
-# (arregla la resolucion/zoom y el portapapeles compartido)
-LOCAL_LUA="$HOME/.config/hypr/local.lua"
-mkdir -p "$HOME/.config/hypr"
-: > "$LOCAL_LUA"
-echo '-- Generado por install.sh: ajustes de ESTA maquina.' >> "$LOCAL_LUA"
-echo '-- Se regenera en cada instalacion; no lo edites a mano.' >> "$LOCAL_LUA"
-
-VIRT="$(systemd-detect-virt 2>/dev/null || echo none)"
-case "$VIRT" in
-  vmware)
-    echo ">>> Maquina virtual VMware detectada: instalando open-vm-tools..."
-    sudo dnf install -y --skip-unavailable open-vm-tools open-vm-tools-desktop || true
-    ;;
-  kvm|qemu)
-    echo ">>> Maquina virtual QEMU/KVM detectada: instalando spice-vdagent..."
-    sudo dnf install -y --skip-unavailable spice-vdagent qemu-guest-agent || true
-    ;;
-  oracle)
-    echo ">>> VirtualBox detectado: instalando virtualbox-guest-additions..."
-    sudo dnf install -y --skip-unavailable virtualbox-guest-additions || true
-    ;;
-esac
-
-# En una VM el driver 3D del hipervisor (SVGA3D/virgl) rompe a los
-# clientes que usan OpenGL de escritorio: kitty muere al arrancar con
-# "invalid arguments for wl_surface.attach" y la tuberia de Wayland se
-# corta. Forzando el render por software (llvmpipe) arrancan bien.
-if [ "$VIRT" != "none" ]; then
-  echo ">>> VM detectada: forzando render por software para los clientes..."
-  {
-    echo 'hl.env("LIBGL_ALWAYS_SOFTWARE", "1")'
-    echo 'hl.env("WLR_RENDERER_ALLOW_SOFTWARE", "1")'
-  } >> "$LOCAL_LUA"
-fi
-
-# Desactivar autologin de GDM para poder elegir la sesion Hyprland
-if [ -f /etc/gdm/custom.conf ] && grep -q '^AutomaticLoginEnable=[Tt]rue' /etc/gdm/custom.conf; then
-  echo ">>> Desactivando autologin de GDM (para poder elegir la sesion)..."
-  sudo sed -i 's/^AutomaticLoginEnable=[Tt]rue/AutomaticLoginEnable=false/' /etc/gdm/custom.conf
-fi
-
-# ---------------------------------------------------------------
-# Verificacion final: avisar de lo que falto (antes se saltaba
-# en silencio por --skip-unavailable)
-# ---------------------------------------------------------------
-echo ""
-echo "--- Verificacion ---"
-MISSING=""
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-for C in Hyprland waybar swaync rofi cava wallust eww hyprlock; do
-  command -v "$C" >/dev/null 2>&1 && echo "  ok   $C" || { echo "  FALTA $C"; MISSING="$MISSING $C"; }
+# ---------------------------------------------------------------- verificacion
+echo
+echo "==> Verificacion final"
+FALTA=""
+ok() { echo "    ok     $1"; }
+no() { echo "    FALTA  $1"; FALTA="$FALTA $1"; }
+V="$(hypr_ver)"
+if [ -n "$V" ] && ver_ge "$V" "$HYPR_MIN"; then ok "Hyprland $V"; else no "Hyprland>=$HYPR_MIN"; fi
+for c in waybar swaync rofi kitty foot thunar swaybg wl-copy grim slurp jq dbus-monitor hyprlock hypridle wallust eww; do
+  if command -v "$c" >/dev/null 2>&1; then ok "$c"; else no "$c"; fi
 done
-if [ -f /usr/share/wayland-sessions/hyprland.desktop ]; then
-  echo "  ok   sesion Hyprland en el gestor de inicio"
-else
-  echo "  FALTA sesion Hyprland en el gestor de inicio"
-  MISSING="$MISSING sesion-hyprland"
+if ls /usr/share/wayland-sessions/hyprland*.desktop >/dev/null 2>&1; then ok "sesion Hyprland en GDM"; else no "sesion-Hyprland"; fi
+if [ -f "$HCONF" ]; then ok "config $HCONF"; else no "hyprland.lua"; fi
+if [ "$VIRT" != "none" ]; then
+  if grep -qE "$LIBGL_RE" "$HCONF"; then ok "render por software (VM)"; else no "render-software-VM"; fi
 fi
+if [ "$HOME" != "$OLDHOME" ] && grep -rq "$OLDHOME" "$HOME/.config/hypr" 2>/dev/null; then no "rutas-sin-ajustar"; fi
 
-echo ""
+echo
 echo "=================================================="
-if [ -n "$MISSING" ]; then
-  echo " Instalacion terminada CON FALTANTES:$MISSING"
-  echo " Instalalos a mano antes de cerrar sesion."
-else
-  echo " Instalacion terminada correctamente."
+if [ -n "$FALTA" ]; then
+  echo " Terminado CON PROBLEMAS:$FALTA"
+  echo " Log completo: $LOG"
+  echo "=================================================="
+  exit 1
 fi
-echo " 1) Cierra sesion."
-echo " 2) En el gestor de inicio (engranaje) elige 'Hyprland'."
-echo " 3) Navegador (brave u otro) instalalo aparte si lo usas."
+echo " Instalacion completa."
+echo "   1) Reinicia (o cierra sesion)."
+echo "   2) En la pantalla de inicio, engrane abajo a la derecha -> Hyprland."
+[ -z "$FALTA_OPT" ] || echo "   Opcionales que no se instalaron:$FALTA_OPT"
 echo "=================================================="

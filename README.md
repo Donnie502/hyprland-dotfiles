@@ -13,11 +13,19 @@ Configuración completa de un escritorio Hyprland con colores dinámicos.
 - Fedora (probado en Fedora 44)
 
 ## Instalación
-    git clone https://github.com/Donnie502/hyprland-dotfiles.git ~/dotfiles
-    cd ~/dotfiles
-    ./install.sh
+Desde GNOME, como tu usuario (sin `sudo`):
 
-Después cierra sesión y en el gestor de inicio elige **Hyprland**.
+    sudo dnf install -y git
+    git clone https://github.com/Donnie502/hyprland-dotfiles.git ~/dotfiles
+    ~/dotfiles/install.sh
+
+Pide la contraseña una vez y hace todo solo. Al terminar reinicia y en la
+pantalla de inicio (engrane abajo a la derecha) elige **Hyprland**.
+
+- Todo lo que imprime queda en `~/dotfiles-install.log`.
+- Tu config anterior se respalda en `~/.config-respaldo-<fecha>`.
+- Si falta algo obligatorio, se detiene y dice qué; los opcionales solo se avisan.
+- Se puede volver a correr sin romper nada.
 
 ## Atajos principales
 | Atajo | Acción |
@@ -37,6 +45,13 @@ Después cierra sesión y en el gestor de inicio elige **Hyprland**.
 | Print | Captura de pantalla |
 
 ## Notas
+- Hyprland ya no está en los repos de Fedora (desde F43): se instala desde el
+  COPR `ashbuk/Hyprland-Fedora`. La config es Lua y necesita Hyprland 0.55 o
+  mayor; si ya tienes uno así instalado, el instalador no lo toca.
 - `eww` y `wallust` no están en repos: el instalador los compila/instala.
+- En una máquina virtual instala las herramientas de invitado y activa render
+  por software para las apps (el 3D de VMware rompe kitty y las apps GTK4).
+  Copiar y pegar entre la VM y el anfitrión no funciona dentro de Hyprland
+  (limitación de VMware); en GNOME sí.
 - Los colores se generan del wallpaper con wallust (cambia fondo con SUPER+W).
 - El navegador (brave u otro) se instala aparte.

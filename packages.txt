@@ -1,47 +1,52 @@
-# --- Runtime ---
-hyprland
-hyprlock
-hypridle
-xdg-desktop-portal-hyprland
-# hyprland-qtutils se renombro a hyprland-guiutils. Dejamos los dos:
-# --skip-unavailable ignora el que no exista en el repo que toque.
-hyprland-guiutils
-hyprland-qtutils
+# Paquetes de Fedora que instala install.sh
+#
+#   nombre    -> obligatorio: si no se puede instalar, el instalador se
+#                detiene y dice cual fallo (nada se salta en silencio).
+#   ?nombre   -> opcional: si no existe en los repos, solo se avisa.
+#
+# Hyprland, hyprlock, hypridle y xdg-desktop-portal-hyprland NO van
+# aqui: los instala el paso 1 desde el COPR ashbuk/Hyprland-Fedora.
+
+# --- Escritorio ---
 waybar
 SwayNotificationCenter
 rofi
-cava
-mangohud
-mangohud.i686
-easyeffects
-blueman
-brightnessctl
-playerctl
-wl-clipboard
-cliphist
-grim
-slurp
-swaybg
-tuned
-thermald
-nwg-look
-nwg-displays
-wob
-gnome-keyring
 kitty
 foot
 thunar
+swaybg
+wl-clipboard
+grim
+slurp
+brightnessctl
+playerctl
+gnome-keyring
+NetworkManager
 pavucontrol
 jetbrains-mono-fonts-all
-NetworkManager
-# --- Utilidades / build ---
+dbus-tools
+python3
+?cliphist
+?wob
+?cava
+?wlogout
+?blueman
+?easyeffects
+?nwg-look
+?nwg-displays
+?mangohud
+?mangohud.i686
+?tuned
+?thermald
+?hyprland-guiutils
+
+# --- Herramientas y compilacion de wallust / eww ---
 git
 jq
 curl
 unzip
 rust
 cargo
-# --- Dependencias para compilar eww ---
 gtk3-devel
 gtk-layer-shell-devel
 gdk-pixbuf2-devel

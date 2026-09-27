@@ -19,11 +19,6 @@ hl.monitor({
     scale    = 1,
 })
 
--- Ajustes propios de esta maquina (monitores, variables de entorno).
--- Lo genera install.sh; no vive en el repo, asi que no se pisa al
--- actualizar. Va aqui: despues de los monitores y antes del autostart.
-pcall(dofile, os.getenv("HOME") .. "/.config/hypr/local.lua")
-
 ---------------------
 ---- MY PROGRAMS ----
 ---------------------
@@ -40,6 +35,14 @@ local browser     = "brave-browser"
 ---- ENVIRONMENT VARIABLES ----
 -------------------------------
 hl.env("XCURSOR_SIZE", "24")
+
+-- hyprland-guiutils no esta empaquetado para Fedora; sin esto Hyprland
+-- muestra un aviso en cada arranque. Solo afecta dialogos opcionales.
+hl.config({
+    misc = {
+        disable_hyprland_guiutils_check = true,
+    },
+})
 
 -----------------------
 ---- LOOK AND FEEL ----
@@ -163,6 +166,11 @@ hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/
 hl.bind("Caps_Lock", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/capslock.sh"), { locked = true })
 hl.bind("Num_Lock", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/numlock.sh"), { locked = true })
 
+-- En una VM, install.sh agrega como primera linea de este bloque
+-- hl.env("LIBGL_ALWAYS_SOFTWARE", "1"). Va aqui (y no arriba con los
+-- demas hl.env) porque este evento se dispara ya con el render de
+-- Hyprland creado: la variable solo la heredan las apps, no el
+-- compositor, que sigue usando la aceleracion de la VM.
 hl.on("hyprland.start", function()
     hl.exec_cmd("waybar")
     hl.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/autostart.sh"); hl.exec_cmd("hypridle"); hl.exec_cmd("wl-paste --watch cliphist store")
