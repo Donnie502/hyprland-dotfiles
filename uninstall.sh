@@ -30,7 +30,7 @@ NUNCA="NetworkManager python3 git curl unzip gnome-keyring dnf-plugins-core tune
        virtualbox-guest-additions"
 # Carpetas de ~/.config que pueden tener cosas tuyas además de las del repo:
 # de estas solo se borran los archivos que puso el repo.
-COMPARTIDAS="kitty MangoHud environment.d"
+COMPARTIDAS="kitty MangoHud environment.d btop"
 
 # ---------------------------------------------------------------- opciones
 SIMULAR=0; SI=0

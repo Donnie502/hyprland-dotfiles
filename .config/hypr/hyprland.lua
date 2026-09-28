@@ -179,6 +179,7 @@ hl.bind("Num_Lock", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/
 -- compositor, que sigue usando la aceleracion de la VM.
 hl.on("hyprland.start", function()
     hl.exec_cmd("waybar")
+    hl.exec_cmd("swaync")  -- notificaciones y panel de SUPER+N
     hl.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/autostart.sh"); hl.exec_cmd("hypridle"); hl.exec_cmd("wl-paste --watch cliphist store")
 end)
 

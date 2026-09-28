@@ -320,10 +320,10 @@ if ! anotado respaldo; then
   if anotado previa || [ ! -d "$BACKUP" ]; then anotar "respaldo ninguno"
   else anotar "respaldo $BACKUP"; fi
 fi
-cp -r "$DOTS/.config/." "$HOME/.config/"
+cp -rf "$DOTS/.config/." "$HOME/.config/"
 # Anotar lo copiado. Estas carpetas pueden tener cosas tuyas además de las
 # del repo: de ellas se anotan solo los archivos, no la carpeta entera.
-COMPARTIDAS="kitty MangoHud environment.d"
+COMPARTIDAS="kitty MangoHud environment.d btop"
 for n in $DIRS; do
   case " $COMPARTIDAS " in
     *" $n "*) while IFS= read -r f; do anotar "conf $HOME/.config/${f#"$DOTS/.config/"}"
@@ -408,7 +408,7 @@ ok() { echo "    ok     $1"; }
 no() { echo "    FALTA  $1"; FALTA="$FALTA $1"; }
 V="$(hypr_ver)"
 if [ -n "$V" ] && ver_ge "$V" "$HYPR_MIN"; then ok "Hyprland $V"; else no "Hyprland>=$HYPR_MIN"; fi
-for c in waybar swaync rofi kitty foot thunar swaybg wl-copy grim slurp jq dbus-monitor hyprlock hypridle wallust eww; do
+for c in waybar swaync rofi kitty foot btop thunar swaybg wl-copy grim slurp jq dbus-monitor hyprlock hypridle wallust eww; do
   if command -v "$c" >/dev/null 2>&1; then ok "$c"; else no "$c"; fi
 done
 if ls /usr/share/wayland-sessions/hyprland*.desktop >/dev/null 2>&1; then ok "sesión Hyprland en la pantalla de inicio"; else no "sesión-Hyprland"; fi

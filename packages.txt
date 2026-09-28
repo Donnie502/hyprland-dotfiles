@@ -13,6 +13,7 @@ SwayNotificationCenter
 rofi
 kitty
 foot
+btop
 Thunar
 swaybg
 wl-clipboard
