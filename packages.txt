@@ -13,7 +13,7 @@ SwayNotificationCenter
 rofi
 kitty
 foot
-thunar
+Thunar
 swaybg
 wl-clipboard
 grim
