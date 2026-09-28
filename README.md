@@ -88,5 +88,10 @@ anterior, el tema de GNOME y el inicio automático de GDM si los cambió.
   por software para las apps (el 3D de VMware rompe kitty y las apps GTK4).
   Copiar y pegar entre la VM y el anfitrión no funciona dentro de Hyprland
   (limitación de VMware); en GNOME sí.
+- En VMware, salir de Hyprland con **Cerrar sesión** (SUPER+M) puede congelar
+  la VM completa al volver a la pantalla de inicio. Con la misma config en
+  hardware real funciona. Dentro de la VM usa **Reiniciar** o **Apagar**.
+  Si ya se congeló: en tu equipo, `Ctrl+Alt+F3`, inicia sesión y corre
+  `pkill -9 -f vmware-vmx`.
 - Los colores se generan del wallpaper con wallust (cambia fondo con SUPER+W).
-- El navegador (brave u otro) se instala aparte.
+- Brave se instala desde su repositorio oficial (se abre con SUPER+B).

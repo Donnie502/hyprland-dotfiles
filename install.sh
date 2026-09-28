@@ -377,6 +377,12 @@ if [ "$VIRT" != "none" ]; then
   grep -qE "$LIBGL_RE" "$HCONF" || falla "No se pudo configurar el render por software en $HCONF"
   info "VM: render por software para las apps (kitty y GTK4)."
 fi
+if [ "$VIRT" = "vmware" ]; then
+  # Visto en pruebas: salir de Hyprland con "Cerrar sesión" congeló la VM
+  # completa (y la ventana de VMware) al regresar a la pantalla de inicio;
+  # con la misma config en hardware real funciona. Reiniciar/Apagar sí van.
+  aviso "VMware: 'Cerrar sesión' (SUPER+M) puede congelar la VM al volver a la pantalla de inicio. Para salir usa Reiniciar o Apagar."
+fi
 # El inicio automático de GDM impide elegir la sesión Hyprland
 if [ -f /etc/gdm/custom.conf ] && grep -q '^AutomaticLoginEnable=[Tt]rue' /etc/gdm/custom.conf; then
   sudo sed -i 's/^AutomaticLoginEnable=[Tt]rue/AutomaticLoginEnable=false/' /etc/gdm/custom.conf
