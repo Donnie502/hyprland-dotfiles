@@ -12,9 +12,15 @@ hl.monitor({
     scale    = 1,
 })
 
+-- Pantalla de la laptop: "highrr" elige la frecuencia mas alta y, a igual
+-- frecuencia, la resolucion mas grande. En la laptop original da
+-- 1920x1200@165; en otra laptop usa la resolucion nativa de su pantalla
+-- en vez de forzar una que quiza no tenga. La escala se deja en 1 a
+-- proposito: la automatica calcula por pulgadas y cambiaria el tamano de
+-- todo (y en una VM, que no reporta tamano fisico, pone escala 2).
 hl.monitor({
     output   = "eDP-1",
-    mode     = "1920x1200@165.00",
+    mode     = "highrr",
     position = "auto",
     scale    = 1,
 })
@@ -125,10 +131,10 @@ hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("wlogout"))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("kitty --class cava --title cava -e cava"))
-hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("/home/donnie502/.config/hypr/scripts/apply-wallpaper.sh"))
+hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/apply-wallpaper.sh"))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("swaync-client --toggle-panel"))
-hl.bind(mainMod .. " + CTRL + N", hl.dsp.exec_cmd("/home/donnie502/.config/hypr/scripts/nmtui-themed.sh"))
+hl.bind(mainMod .. " + CTRL + N", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/nmtui-themed.sh"))
 hl.bind(mainMod .. " + CTRL + V", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/clipboard.sh"))
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/monitor-menu.sh"))
 hl.bind(mainMod .. " + Space", hl.dsp.exec_cmd("hyprctl switchxkblayout all next"))
@@ -205,5 +211,5 @@ hl.layer_rule({
     ignore_alpha = 0.2,
 })
 
-hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("/home/donnie502/.local/bin/eww open --toggle dashboard"))
+hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.local/bin/eww open --toggle dashboard"))
 hl.layer_rule({ name = "dash-blur", match = { namespace = "^dashboard$" }, blur = true, ignore_alpha = 0.1 })

@@ -2,17 +2,22 @@
 # ==================================================================
 #  Instalador de los dotfiles de Hyprland para Fedora (43 / 44)
 #
-#  Uso (como tu usuario, NO con sudo, idealmente desde GNOME):
+#  Uso (como tu usuario, sin sudo, desde GNOME):
 #     git clone https://github.com/Donnie502/hyprland-dotfiles ~/dotfiles
 #     ~/dotfiles/install.sh
 #
-#  Se puede volver a correr sin romper nada. Todo lo que imprime se
-#  guarda tambien en ~/dotfiles-install.log
-#
-#  Lo que agrega queda anotado en ~/.local/share/hyprland-dotfiles/registro
-#  para que uninstall.sh quite exactamente eso y nada mas.
+#  - Se puede volver a correr sin romper nada.
+#  - Todo lo que imprime queda en ~/dotfiles-install.log
+#  - Lo que agrega queda anotado en ~/.local/share/hyprland-dotfiles/registro
+#    para que uninstall.sh quite exactamente eso y nada más.
 # ==================================================================
 set -Ee
+
+case "${1:-}" in
+  -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
+  "") ;;
+  *) echo "Opción desconocida: $1  (usa --help)"; exit 2 ;;
+esac
 
 DOTS="$(cd "$(dirname "$0")" && pwd)"
 OLDHOME="/home/donnie502"
@@ -22,36 +27,51 @@ HYPR_PKGS="hyprland hyprlock hypridle xdg-desktop-portal-hyprland"
 BRAVE_REPO="https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo"
 LOG="$HOME/dotfiles-install.log"
 REGISTRO="$HOME/.local/share/hyprland-dotfiles/registro"
+ESPACIO_MIN_GB=5  # paquetes + compilar eww y wallust
+PCI_DIR="/sys/bus/pci/devices"
 TOTAL=10
+
+# Descargas fijadas a una versión exacta: lo que se instala es siempre lo
+# mismo que se probó, y no cambia si el proyecto de origen cambia.
+#   eww: commit de master que se compiló y probó en Fedora 44
+EWW_REPO="https://github.com/elkowar/eww"
+EWW_COMMIT="48f5aa8b379adf29da0b0bb9ca04164f65d8bdaa"
+#   candy-icons
+ICONS_REPO="https://github.com/EliverLara/candy-icons"
+ICONS_COMMIT="83512fbcadcb7e1015ebbe1729a1894946b021be"
+#   JetBrainsMono Nerd Font; la suma es la del SHA-256.txt oficial del release
+NERD_VER="v3.5.1"
+NERD_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/$NERD_VER/JetBrainsMono.zip"
+NERD_SHA256="fab782a66f7d3019da64f6572db9fc5d3a4bcb19f9fa13e2d8a62e3693d6396e"
 
 # ---------------------------------------------------------------- utilidades
 exec > >(tee -a "$LOG") 2>&1
 
 paso()  { echo; echo "==> [$1/$TOTAL] $2"; }
 info()  { echo "    $*"; }
-aviso() { echo "    !! $*"; }
+aviso() { echo "    !! $*"; AVISOS="${AVISOS:-}$*"$'\n'; }
 falla() {
   trap - ERR
-  # anotar lo que si se alcanzo a instalar, para poder desinstalarlo
+  # anotar lo que sí se alcanzó a instalar, para poder desinstalarlo
   [ -z "${CANDIDATOS:-}" ] || registrar_paquetes || true
   echo
   echo "=================================================="
   echo " ERROR: $*"
-  echo " Nada quedo a medias que impida volver a correrlo."
+  echo " Puedes corregirlo y volver a correr el instalador."
   echo " Log completo: $LOG"
   echo "=================================================="
   exit 1
 }
-trap 'falla "fallo inesperado en la linea $LINENO: $BASH_COMMAND"' ERR
+trap 'falla "fallo inesperado en la línea $LINENO: $BASH_COMMAND"' ERR
 
-# Version de Hyprland instalada ("0.56.2"), o vacio si no hay
+# Versión de Hyprland instalada ("0.56.2"), o vacío si no hay
 hypr_ver() { Hyprland --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1; }
 # ver_ge A B  ->  verdadero si A >= B
 ver_ge() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$2" ]; }
-# De una lista de paquetes, imprime los que estan instalados
+# De una lista de paquetes, imprime los que están instalados
 instalados() { for p in "$@"; do rpm -q "$p" >/dev/null 2>&1 && echo "$p"; done; return 0; }
 
-# Registro para uninstall.sh: una linea "clave valor" por cosa agregada
+# Registro para uninstall.sh: una línea "clave valor" por cosa agregada
 anotar()  { grep -qxF "$*" "$REGISTRO" 2>/dev/null || echo "$*" >> "$REGISTRO"; }
 anotado() { grep -qE "^$1( |$)" "$REGISTRO" 2>/dev/null; }
 # Anota los paquetes que no estaban antes de correr el instalador
@@ -61,23 +81,50 @@ registrar_paquetes() {
     case "$PREVIOS" in *" $p "*) ;; *) anotar "pkg $p" ;; esac
   done
 }
+# Descarga un repositorio de git en un commit exacto (sin historial)
+git_fijo() {  # git_fijo URL COMMIT DESTINO
+  rm -rf "$3"
+  git init -q "$3"
+  git -C "$3" remote add origin "$1"
+  git -C "$3" fetch -q --depth 1 origin "$2"
+  git -C "$3" checkout -q FETCH_HEAD
+}
+# Espacio libre en GB de la partición que contiene una ruta
+libre_gb() { df -Pk "$1" | awk 'NR==2 {print int($4/1048576)}'; }
 
-# ---------------------------------------------------------------- 0. revision
+# ---------------------------------------------------------------- 0. revisión
 echo "=================================================="
 echo " Dotfiles Hyprland  -  $(date '+%Y-%m-%d %H:%M')"
 echo "=================================================="
-[ "$(id -u)" -ne 0 ] || falla "No lo corras con sudo ni como root. Correlo asi: ~/dotfiles/install.sh"
+[ "$(id -u)" -ne 0 ] || falla "No lo corras con sudo ni como root. Córrelo así: ~/dotfiles/install.sh"
 . /etc/os-release
 [ "${ID:-}" = "fedora" ] || falla "Este instalador es solo para Fedora (detectado: ${ID:-desconocido})."
 VIRT="$(systemd-detect-virt --vm 2>/dev/null || true)"
 [ -n "$VIRT" ] || VIRT="none"
-info "Fedora $VERSION_ID  |  maquina virtual: $VIRT"
+ARCH="$(uname -m)"
+info "Fedora $VERSION_ID  |  arquitectura: $ARCH  |  máquina virtual: $VIRT"
+case "$VERSION_ID" in
+  43|44) ;;
+  *) aviso "Probado en Fedora 43 y 44; en Fedora $VERSION_ID puede fallar algún paso." ;;
+esac
+[ "$ARCH" = "x86_64" ] || aviso "Probado solo en x86_64; en $ARCH puede fallar algún paquete."
+for d in "$HOME" /; do
+  G="$(libre_gb "$d")"
+  [ "$G" -ge "$ESPACIO_MIN_GB" ] \
+    || falla "Poco espacio libre en $d: ${G} GB (se necesitan al menos $ESPACIO_MIN_GB GB)."
+done
+# Tarjetas NVIDIA: Hyprland necesita el driver propietario y ajustes que
+# este instalador no hace (dependen de cada equipo). Solo se avisa.
+if grep -qs '^0x10de$' "$PCI_DIR"/*/vendor; then
+  aviso "Tarjeta NVIDIA detectada: Hyprland necesita el driver propietario (akmod-nvidia, de RPM Fusion) y variables de entorno que este instalador no configura. Guía: https://wiki.hypr.land/Nvidia/"
+fi
 curl -fsS --max-time 20 -o /dev/null https://github.com \
   || falla "Sin internet: no se alcanza github.com."
 
-echo "    Te va a pedir tu contrasena una sola vez."
-sudo -v || falla "Se necesita sudo."
-# Mantener sudo vivo: la compilacion de eww tarda mas que el timeout de sudo
+info "Se necesitan permisos de administrador (sudo) para instalar paquetes."
+sudo -v || falla "No se pudo obtener sudo."
+# Mantener vigente sudo mientras corre el instalador (compilar eww tarda
+# más que el tiempo de espera normal de sudo); se detiene al terminar.
 ( trap - ERR; while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null; sleep 50; done ) &
 SUDO_KEEP=$!
 trap 'kill $SUDO_KEEP 2>/dev/null || true' EXIT
@@ -86,8 +133,8 @@ trap 'kill $SUDO_KEEP 2>/dev/null || true' EXIT
 mkdir -p "$(dirname "$REGISTRO")"
 if [ ! -f "$REGISTRO" ] \
    && { [ -f "$HOME/.config/hypr/scripts/autostart.sh" ] || [ -x "$HOME/.local/bin/eww" ]; }; then
-  # Ya habia una instalacion de una version vieja del instalador, que no
-  # anotaba nada: no sabemos como estaba el sistema antes de ella.
+  # Ya había una instalación de una versión vieja del instalador, que no
+  # anotaba nada: no sabemos cómo estaba el sistema antes de ella.
   anotar "previa 1"
 fi
 REQ="$(grep -vE '^[[:space:]]*(#|$)' "$DOTS/packages.txt" | grep -v '^?' || true)"
@@ -97,9 +144,9 @@ PREVIOS=" $(instalados $CANDIDATOS | tr '\n' ' ') "
 
 # ---------------------------------------------------------------- 1. Hyprland
 paso 1 "Hyprland (COPR $HYPR_COPR)"
-# Fedora retiro Hyprland de sus repos oficiales desde F43. El COPR de
-# ashbuk empaqueta Hyprland >= 0.55 con sus librerias hypr* propias
-# (vendorizadas), asi que no choca con las viejas de Fedora.
+# Fedora retiró Hyprland de sus repos oficiales desde F43. El COPR de
+# ashbuk empaqueta Hyprland >= 0.55 con sus propias librerías hypr*
+# (vendorizadas), así que no choca con las viejas de Fedora.
 V="$(hypr_ver)"
 if [ -n "$V" ] && ver_ge "$V" "$HYPR_MIN"; then
   info "Hyprland $V ya instalado (>= $HYPR_MIN). No se toca."
@@ -115,17 +162,17 @@ else
   done
   compgen -G "/etc/yum.repos.d/*${HYPR_COPR/\//:}*.repo" >/dev/null || anotar "copr $HYPR_COPR"
   sudo dnf copr enable -y "$HYPR_COPR" \
-    || falla "No se pudo activar el COPR $HYPR_COPR. Puede que aun no tenga paquetes para Fedora $VERSION_ID."
+    || falla "No se pudo activar el COPR $HYPR_COPR. Puede que aún no tenga paquetes para Fedora $VERSION_ID."
   VIEJOS="$(instalados $HYPR_PKGS)"
   if [ -n "$VIEJOS" ]; then
-    info "Quitando la version anterior: $(echo $VIEJOS)"
+    info "Quitando la versión anterior: $(echo $VIEJOS)"
     sudo dnf remove -y $VIEJOS
   fi
   sudo dnf install -y $HYPR_PKGS
   V="$(hypr_ver)"
 fi
 { [ -n "$V" ] && ver_ge "$V" "$HYPR_MIN"; } \
-  || falla "Hyprland ${V:-no se instalo}. Esta config necesita Hyprland >= $HYPR_MIN."
+  || falla "Hyprland ${V:-no se instaló}. Esta config necesita Hyprland >= $HYPR_MIN."
 registrar_paquetes
 info "OK: Hyprland $V"
 
@@ -137,7 +184,7 @@ sudo dnf install -y --skip-unavailable $REQ $OPT
 registrar_paquetes
 FALTA_OPT=""; for p in $OPT; do rpm -q "$p" >/dev/null 2>&1 || FALTA_OPT="$FALTA_OPT $p"; done
 FALTA_REQ=""; for p in $REQ; do rpm -q "$p" >/dev/null 2>&1 || FALTA_REQ="$FALTA_REQ $p"; done
-[ -z "$FALTA_OPT" ] || aviso "Opcionales que no estan en los repos (se omiten):$FALTA_OPT"
+[ -z "$FALTA_OPT" ] || info "Opcionales que no están en los repos (se omiten):$FALTA_OPT"
 [ -z "$FALTA_REQ" ] || falla "No se pudieron instalar paquetes obligatorios:$FALTA_REQ"
 info "OK: $(echo $REQ | wc -w) obligatorios instalados"
 
@@ -148,6 +195,7 @@ if rpm -q brave-browser >/dev/null 2>&1; then
 else
   sudo dnf install -y dnf-plugins-core
   if [ ! -f /etc/yum.repos.d/brave-browser.repo ]; then
+    # repo oficial de Brave; sus paquetes van firmados (gpgcheck)
     if sudo dnf config-manager addrepo --from-repofile="$BRAVE_REPO"; then
       anotar "repo brave-browser"
     else
@@ -155,32 +203,32 @@ else
     fi
   fi
   sudo dnf install -y brave-browser \
-    || aviso "No se pudo instalar Brave: SUPER+B no abrira nada hasta que instales un navegador."
+    || aviso "No se pudo instalar Brave: SUPER+B no abrirá nada hasta que instales un navegador."
   registrar_paquetes
 fi
 
-# ---------------------------------------------------------------- 4. energia
-paso 4 "Perfiles de energia"
+# ---------------------------------------------------------------- 4. energía
+paso 4 "Perfiles de energía"
 if command -v tuned-adm >/dev/null 2>&1; then
   sudo systemctl enable --now tuned || aviso "No se pudo arrancar tuned."
   sudo tuned-adm profile balanced || true
 fi
 if [ "$VIRT" = "none" ] && rpm -q thermald >/dev/null 2>&1; then
-  sudo systemctl enable --now thermald || aviso "thermald no arranco (normal si tu CPU no es Intel)."
+  sudo systemctl enable --now thermald || info "thermald no arrancó (es normal si tu CPU no es Intel)."
 fi
 
 # ---------------------------------------------------------------- 5. wallust
-paso 5 "wallust (colores segun el wallpaper)"
+paso 5 "wallust (colores según el wallpaper)"
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-# Si ~/.cargo no existia, lo crea cargo para nosotros (y guarda ahi cientos
-# de MB de cache): se anota para que el desinstalador lo borre completo.
+# Si ~/.cargo no existía, lo crea cargo (y guarda ahí su caché): se anota
+# para que el desinstalador lo borre si no queda nada tuyo dentro.
 [ -d "$HOME/.cargo" ] || anotar "dir $HOME/.cargo"
 if [ ! -x "$HOME/.cargo/bin/wallust" ]; then
   cargo install wallust
   anotar "file $HOME/.cargo/bin/wallust"
 fi
-# cargo lo deja en ~/.cargo/bin, que NO esta en el PATH de la sesion de
-# Hyprland; ~/.local/bin si. Los scripts llaman "wallust" a secas.
+# cargo lo deja en ~/.cargo/bin, que NO está en el PATH de la sesión de
+# Hyprland; ~/.local/bin sí. Los scripts llaman "wallust" sin ruta.
 mkdir -p "$HOME/.local/bin"
 ln -sf "$HOME/.cargo/bin/wallust" "$HOME/.local/bin/wallust"
 anotar "file $HOME/.local/bin/wallust"
@@ -190,8 +238,7 @@ paso 6 "eww (visualizador y dashboard; compilar tarda varios minutos)"
 if [ -x "$HOME/.local/bin/eww" ]; then
   info "eww ya instalado."
 else
-  rm -rf /tmp/eww-src
-  git clone --depth 1 https://github.com/elkowar/eww /tmp/eww-src
+  git_fijo "$EWW_REPO" "$EWW_COMMIT" /tmp/eww-src
   ( cd /tmp/eww-src && cargo build --release --no-default-features --features wayland )
   cp /tmp/eww-src/target/release/eww "$HOME/.local/bin/"
   rm -rf /tmp/eww-src
@@ -199,18 +246,25 @@ else
 fi
 
 # ---------------------------------------------------------------- 7. iconos y fuente
-paso 7 "Iconos (candy-icons) y fuente (JetBrainsMono Nerd Font)"
+paso 7 "Iconos (candy-icons) y fuente (JetBrainsMono Nerd Font $NERD_VER)"
 mkdir -p "$HOME/.local/share/icons"
 if [ ! -d "$HOME/.local/share/icons/candy-icons" ]; then
-  git clone --depth 1 https://github.com/EliverLara/candy-icons.git "$HOME/.local/share/icons/candy-icons"
+  git_fijo "$ICONS_REPO" "$ICONS_COMMIT" "$HOME/.local/share/icons/candy-icons"
+  rm -rf "$HOME/.local/share/icons/candy-icons/.git"
   anotar "file $HOME/.local/share/icons/candy-icons"
 fi
 if ! fc-list | grep -i "JetBrainsMono Nerd Font" >/dev/null; then
+  ZIP="$(mktemp --suffix=.zip)"
+  curl -fL --retry 3 -o "$ZIP" "$NERD_URL"
+  # Verificar que el archivo es exactamente el publicado por Nerd Fonts
+  if [ "$(sha256sum "$ZIP" | cut -d' ' -f1)" != "$NERD_SHA256" ]; then
+    rm -f "$ZIP"
+    falla "La fuente descargada no coincide con la suma SHA-256 esperada (descarga dañada o alterada)."
+  fi
   mkdir -p "$HOME/.local/share/fonts/JetBrainsMonoNF"
   anotar "file $HOME/.local/share/fonts/JetBrainsMonoNF"
-  curl -fL -o /tmp/jbm.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
-  unzip -oq /tmp/jbm.zip -d "$HOME/.local/share/fonts/JetBrainsMonoNF"
-  rm -f /tmp/jbm.zip
+  unzip -oq "$ZIP" -d "$HOME/.local/share/fonts/JetBrainsMonoNF"
+  rm -f "$ZIP"
   fc-cache -f >/dev/null
 fi
 
@@ -228,15 +282,15 @@ for d in "$DOTS/.config/"*; do
   fi
 done
 if [ -d "$BACKUP" ]; then info "Respaldo de tu config anterior: $BACKUP"; fi
-# El respaldo "original" (el de antes de la primera instalacion) es el que
-# restaura uninstall.sh. Si ya habia una instalacion vieja sin registro,
-# ese respaldo contendria nuestra propia config, asi que no cuenta.
+# El respaldo "original" (el de antes de la primera instalación) es el que
+# restaura uninstall.sh. Si ya había una instalación vieja sin registro,
+# ese respaldo contendría nuestra propia config, así que no cuenta.
 if ! anotado respaldo; then
   if anotado previa || [ ! -d "$BACKUP" ]; then anotar "respaldo ninguno"
   else anotar "respaldo $BACKUP"; fi
 fi
 cp -r "$DOTS/.config/." "$HOME/.config/"
-# Anotar lo copiado. Estas carpetas pueden tener cosas tuyas ademas de las
+# Anotar lo copiado. Estas carpetas pueden tener cosas tuyas además de las
 # del repo: de ellas se anotan solo los archivos, no la carpeta entera.
 COMPARTIDAS="kitty MangoHud environment.d"
 for n in $DIRS; do
@@ -246,8 +300,8 @@ for n in $DIRS; do
     *)        anotar "conf $HOME/.config/$n" ;;
   esac
 done
-# Restos de intentos anteriores: local.lua ya no se usa, y 90-vm-gl.conf
-# forzaba render por software tambien al compositor (via systemd).
+# Restos de versiones anteriores del instalador: local.lua ya no se usa,
+# y 90-vm-gl.conf forzaba render por software también al compositor.
 rm -f "$HOME/.config/hypr/local.lua" "$HOME/.config/environment.d/90-vm-gl.conf"
 NUEVOS=""
 for f in "$DOTS/wallpapers/"*; do
@@ -260,7 +314,8 @@ for w in $NUEVOS; do
 done
 chmod +x "$HOME/.config/hypr/scripts/"*.sh 2>/dev/null || true
 chmod +x "$HOME/.config/eww/scripts/"* 2>/dev/null || true
-# Las configs traen rutas absolutas de la maquina original
+# Algunas configs (hyprlock, hypridle, scripts) traen rutas absolutas de
+# la máquina original: se ajustan a la tuya.
 if [ "$HOME" != "$OLDHOME" ]; then
   for n in $DIRS; do
     grep -rl "$OLDHOME" "$HOME/.config/$n" 2>/dev/null | while read -r f; do
@@ -270,10 +325,10 @@ if [ "$HOME" != "$OLDHOME" ]; then
   info "Rutas ajustadas: $OLDHOME -> $HOME"
 fi
 
-# ---------------------------------------------------------------- 9. esta maquina
-paso 9 "Ajustes de esta maquina"
+# ---------------------------------------------------------------- 9. este equipo
+paso 9 "Ajustes de este equipo"
 HCONF="$HOME/.config/hypr/hyprland.lua"
-# Solo la linea de codigo (el comentario de hyprland.lua tambien la menciona)
+# Solo la línea de código (el comentario de hyprland.lua también la menciona)
 LIBGL_RE='^[[:space:]]+hl\.env\("LIBGL_ALWAYS_SOFTWARE"'
 case "$VIRT" in
   vmware)   sudo dnf install -y --skip-unavailable open-vm-tools open-vm-tools-desktop ;;
@@ -284,24 +339,24 @@ esac
 if [ "$VIRT" != "none" ]; then
   # El 3D del hipervisor (SVGA3D en VMware) rompe a las apps OpenGL:
   # kitty muere con "invalid arguments for wl_surface.attach". Con render
-  # por software arrancan bien. Se pone dentro de hyprland.start para que
-  # lo hereden solo las apps y no el compositor (ver hyprland.lua).
+  # por software arrancan bien. Va dentro de hyprland.start para que lo
+  # hereden solo las apps y no el compositor (ver hyprland.lua).
   grep -qE "$LIBGL_RE" "$HCONF" \
     || sed -i '/^hl.on("hyprland.start", function()/a\    hl.env("LIBGL_ALWAYS_SOFTWARE", "1") -- VM: agregado por install.sh' "$HCONF"
   grep -qE "$LIBGL_RE" "$HCONF" || falla "No se pudo configurar el render por software en $HCONF"
   info "VM: render por software para las apps (kitty y GTK4)."
 fi
-# Autologin de GDM impide elegir la sesion Hyprland
+# El inicio automático de GDM impide elegir la sesión Hyprland
 if [ -f /etc/gdm/custom.conf ] && grep -q '^AutomaticLoginEnable=[Tt]rue' /etc/gdm/custom.conf; then
   sudo sed -i 's/^AutomaticLoginEnable=[Tt]rue/AutomaticLoginEnable=false/' /etc/gdm/custom.conf
   anotar "gdm_autologin 1"
-  info "Autologin de GDM desactivado (para poder elegir Hyprland)."
+  info "Inicio automático de GDM desactivado (para poder elegir Hyprland)."
 fi
 
 # ---------------------------------------------------------------- 10. tema
 paso 10 "Tema oscuro y colores del wallpaper"
-# Guardar los valores de antes (solo la primera vez y si no habia una
-# instalacion vieja, que ya los habria cambiado) para poder regresarlos
+# Guardar los valores de antes (solo la primera vez y si no había una
+# instalación vieja, que ya los habría cambiado) para poder regresarlos
 if ! anotado previa; then
   for k in color-scheme cursor-theme; do
     anotado "gs $k" || anotar "gs $k $(gsettings get org.gnome.desktop.interface "$k" 2>/dev/null || echo "''")"
@@ -314,9 +369,9 @@ if [ -n "$FIRST" ]; then
   wallust run "$FIRST" >/dev/null 2>&1 || aviso "wallust no pudo generar colores (se usan los del repo)."
 fi
 
-# ---------------------------------------------------------------- verificacion
+# ---------------------------------------------------------------- verificación
 echo
-echo "==> Verificacion final"
+echo "==> Verificación final"
 FALTA=""
 ok() { echo "    ok     $1"; }
 no() { echo "    FALTA  $1"; FALTA="$FALTA $1"; }
@@ -325,8 +380,8 @@ if [ -n "$V" ] && ver_ge "$V" "$HYPR_MIN"; then ok "Hyprland $V"; else no "Hyprl
 for c in waybar swaync rofi kitty foot thunar swaybg wl-copy grim slurp jq dbus-monitor hyprlock hypridle wallust eww; do
   if command -v "$c" >/dev/null 2>&1; then ok "$c"; else no "$c"; fi
 done
-if ls /usr/share/wayland-sessions/hyprland*.desktop >/dev/null 2>&1; then ok "sesion Hyprland en GDM"; else no "sesion-Hyprland"; fi
-if [ -f "$HCONF" ]; then ok "config $HCONF"; else no "hyprland.lua"; fi
+if ls /usr/share/wayland-sessions/hyprland*.desktop >/dev/null 2>&1; then ok "sesión Hyprland en la pantalla de inicio"; else no "sesión-Hyprland"; fi
+if [ -f "$HCONF" ]; then ok "config ${HCONF/#$HOME/\~}"; else no "hyprland.lua"; fi
 if [ "$VIRT" != "none" ]; then
   if grep -qE "$LIBGL_RE" "$HCONF"; then ok "render por software (VM)"; else no "render-software-VM"; fi
 fi
@@ -340,9 +395,14 @@ if [ -n "$FALTA" ]; then
   echo "=================================================="
   exit 1
 fi
-echo " Instalacion completa."
-echo "   1) Reinicia (o cierra sesion)."
+echo " Instalación completa."
+echo "   1) Reinicia (o cierra sesión)."
 echo "   2) En la pantalla de inicio, engrane abajo a la derecha -> Hyprland."
-echo "   Para quitar todo despues: $DOTS/uninstall.sh"
+echo "   Para quitar todo después: $DOTS/uninstall.sh"
 [ -z "$FALTA_OPT" ] || echo "   Opcionales que no se instalaron:$FALTA_OPT"
+if [ -n "${AVISOS:-}" ]; then
+  echo
+  echo " Avisos:"
+  printf '%s' "$AVISOS" | sed 's/^/   - /'
+fi
 echo "=================================================="

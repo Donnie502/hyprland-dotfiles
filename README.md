@@ -10,7 +10,11 @@ Configuración completa de un escritorio Hyprland con colores dinámicos.
 - **MangoHud** (overlay para juegos) y **EasyEffects** (ecualizador con presets)
 
 ## Requisitos
-- Fedora (probado en Fedora 44)
+- Fedora 43 o 44, x86_64 (en otras versiones avisa y sigue)
+- Al menos 5 GB libres (compila eww y wallust)
+- Tarjetas **NVIDIA**: Hyprland necesita el driver propietario y ajustes
+  que el instalador no hace; si detecta una, avisa y enlaza la
+  [guía oficial](https://wiki.hypr.land/Nvidia/).
 
 ## Instalación
 Desde GNOME, como tu usuario (sin `sudo`):
@@ -64,6 +68,16 @@ anterior, el tema de GNOME y el inicio automático de GDM si los cambió.
 | SUPER+CTRL+N | Red (nmtui) |
 | SUPER+CTRL+V | Historial de portapapeles |
 | Print | Captura de pantalla |
+
+## Seguridad
+- No se corre como root; pide `sudo` solo para instalar paquetes.
+- Todo lo que se descarga fuera de los repos de Fedora está fijado a una
+  versión exacta: eww y candy-icons a un commit, y la fuente a
+  JetBrainsMono Nerd Font v3.5.1, verificada contra su SHA-256 oficial.
+- Brave viene de su repositorio oficial (paquetes firmados) y Hyprland del
+  COPR `ashbuk/Hyprland-Fedora`, que es de un tercero.
+- `tools/diag.sh` junta información para diagnosticar en
+  `~/dotfiles-diagnostico.txt`; no sube nada a internet.
 
 ## Notas
 - Hyprland ya no está en los repos de Fedora (desde F43): se instala desde el
